@@ -1,0 +1,86 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.0.36">
+  <POU Name="MAIN" Id="{5c2a2e55-214a-4145-bde7-d487c3725dfc}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	fbFileOpen           : FB_FileOpen;
+	fbFileWrite          : FB_FilePuts;
+	fbFileClose          : FB_FileClose;
+	h_File 	             : UINT;
+	Step                 : INT;
+	writeString          : T_MaxString;
+	stringArray          : ARRAY[0..1000] OF T_MaxString;
+	stringPointer        : INT := -1;
+	
+	uCurrTime            : STRING;
+	sFileName            : STRING;
+	stopExecution        : BOOL := 0;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+
+
+CASE Step OF 
+	0:
+		stringArray[0] := 'Test 0';
+		stringArray[1] := 'Test 1';
+		stringArray[2] := 'Test 2';
+		stringArray[3] := 'Test 3';
+		stringArray[4] := 'Test 4';
+		stringArray[5] := 'Test 5';
+		stringArray[6] := 'Test 6';
+		stringArray[7] := 'Test 7';
+		stringArray[8] := 'Test 8';
+		stringArray[9] := 'Test 9';
+		stringPointer := 9;
+
+		uCurrTime := UDINT_TO_STRING(TIME_TO_UDINT(TIME()));
+		sFileName := CONCAT(CONCAT('C:\Temp\PLC_',uCurrTime),'.log');
+		fbFileOpen( sPathName:= sFileName, nMode:= FOPEN_MODEAPPEND, bExecute:= TRUE );
+		Step := Step + 1;
+		
+		
+	1:
+		fbFileOpen( bExecute := FALSE ); 
+		IF NOT fbFileOpen.bBusy AND NOT fbFileOpen.bError THEN 
+			Step := Step + 1;
+			fbFileOpen(hFile => h_File);
+		END_IF
+		
+		
+	2:
+		IF stringPointer >= 0 THEN
+			fbFileWrite( bExecute := FALSE );
+			writeString := CONCAT(stringArray[stringPointer],'$n');
+			stringPointer := stringPointer - 1;
+			fbFileWrite( hFile := h_File, sLine := writeString, bExecute := TRUE );
+			Step := Step + 1;
+		ELSIF stopExecution THEN
+			Step := 10;
+		END_IF
+		
+	3:
+		fbFileWrite( bExecute := FALSE );
+		IF NOT fbFileWrite.bBusy AND NOT fbFileWrite.bError THEN
+			Step := 2;
+		END_IF
+		
+		
+		
+	10:
+		fbFileClose( hFile := h_File, bExecute := TRUE );
+		Step := Step + 1;
+	11:
+		fbFileClose( bExecute := FALSE ); 
+		IF NOT fbFileClose.bBusy THEN 
+			Step := Step + 1;
+		END_IF
+	
+	12:
+
+END_CASE
+	]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>
